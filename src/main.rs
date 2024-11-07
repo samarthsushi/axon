@@ -5,8 +5,8 @@ use std::time::Duration;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 4 {
-        eprintln!("usage: axon <port> <message> <timeout_in_seconds>");
+    if args.len() < 3 || args.len() > 4 {
+        eprintln!("usage: client <port> <message> [timeout_in_seconds]");
         return Ok(());
     }
 
@@ -19,12 +19,16 @@ fn main() -> io::Result<()> {
     };
     let message = &args[2];
 
-    let timeout_secs: u64 = match args[3].parse() {
-        Ok(t) if t > 0 => t,
-        _ => {
-            eprintln!("error: timeout must be a positive integer representing seconds.");
-            return Ok(());
+    let timeout_secs: u64 = if args.len() == 4 {
+        match args[3].parse() {
+            Ok(t) if t > 0 => t,
+            _ => {
+                eprintln!("error: timeout must be a positive integer representing seconds.");
+                return Ok(());
+            }
         }
+    } else {
+        5 // default timeout in seconds
     };
 
     let address = format!("127.0.0.1:{}", port);
@@ -37,7 +41,7 @@ fn main() -> io::Result<()> {
             stream.set_write_timeout(Some(timeout))?;
 
             stream.write_all(message.as_bytes())?;
-            println!("Sent: {}", message);
+            println!("sent: {}", message);
 
             let mut buffer = [0; 512];
             match stream.read(&mut buffer) {
